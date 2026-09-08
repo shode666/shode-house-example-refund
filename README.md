@@ -12,6 +12,10 @@ a real payments system. All upstream artifacts that drove this code are in
 | `02-felix-1b.md` | 1b | Felix (Fintech domain expert) | Ledger rules, chart of accounts, rounding/scale policy |
 | `03-sara-1a.md` | 1a | Sara (Architect) | File tree, schema, API, ADRs, test strategy |
 | `04-sentinel-1c.md` | 1c | Sentinel (Threat model) | STRIDE pass, SEC-01/02/03 |
+| `05-dave-2.md` | 2 | Dave (Developer) | Implementation evidence, AC→test map, iter 1 fix |
+| `06-chris-3b.md` | 3b | Chris (Code review) | 7-dim review — 1 🔴 found (scientific-notation amount → 500), fixed, re-verified |
+| `07-quinn-3b.md` | 3b | Quinn (QA) | Real E2E over uvicorn + Spec axis 11/11 |
+| `08-felix-3b.md` | 3b | Felix (Domain) | Ledger code vs rules — DOMAIN CLEAN, 2 test-strength findings fixed |
 
 ## What this is not
 
@@ -56,9 +60,15 @@ DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/refund" \
 ### With docker (macOS / most humans)
 
 ```bash
-make install   # once
-make test      # spins up db_test via docker compose, runs pytest, tears down
+make test
 ```
+
+That's the only command you need — `make test` creates `.venv` and installs
+the package (only if `.venv/bin/pytest` doesn't exist yet), spins up
+`db_test` via docker compose, runs pytest, then tears the container down.
+Needs Python >=3.12 on `PATH` as `python3.12` or `python3`; if neither is
+new enough, `make test` fails with a clear error naming the interpreter it
+found instead of a cryptic `No such file or directory`.
 
 ### Without docker (this sandbox has no docker — throwaway local cluster instead)
 
@@ -68,10 +78,11 @@ initdb -D /tmp/pg-refund/data -U postgres --auth=trust -E UTF8
 pg_ctl -D /tmp/pg-refund/data -l /tmp/pg-refund/server.log -o "-p 5433" start
 createdb -h localhost -p 5433 -U postgres refund_test
 
-.venv/bin/pip install -e ".[dev]"
-.venv/bin/pytest -v
+make test-local
 ```
 
+`make test-local` (like `make test`) creates `.venv` on demand and installs
+the package, then runs pytest against whatever `DATABASE_URL` points at.
 `tests/conftest.py` defaults `DATABASE_URL` to
 `postgresql+psycopg://postgres@localhost:5433/refund_test` — override the
 env var if your cluster differs.
