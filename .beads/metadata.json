@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "shode_house_example_refund",
+  "project_id": "ccb32067-23f3-499f-9bd5-3ac8f9fd26f2"
+}
