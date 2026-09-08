@@ -25,6 +25,12 @@ class IdempotencyKeyMissing(DomainError):
     status_code = 400
 
 
+class IdempotencyKeyTooLong(DomainError):
+    """S-01: header exceeds refunds.idempotency_key column bound (models.py String(255))."""
+
+    status_code = 422
+
+
 class IdempotencyConflict(DomainError):
     """AC-06 (amount mismatch) / SEC-02 (cross-order reuse of the same key)."""
 

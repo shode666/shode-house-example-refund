@@ -9,13 +9,13 @@ from contextlib import asynccontextmanager
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import FastAPI, Header, HTTPException, status
+from fastapi import FastAPI, Header, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app import service
 from app.db import SessionLocal, engine
-from app.errors import DomainError
+from app.errors import DomainError, IdempotencyKeyMissing, IdempotencyKeyTooLong
 from app.models import Base
 from app.schemas import (
     CreateOrderRequest,
@@ -25,6 +25,11 @@ from app.schemas import (
     OrderResponse,
     RefundResponse,
 )
+
+# C-4 fix (01-chris-3b.md #4 / 08-chris-3b-iter2.md): mirrors
+# models.py:69 String(255) so a request-layer reject and the DB column
+# bound never drift apart.
+MAX_IDEMPOTENCY_KEY_LENGTH = 255
 
 
 @asynccontextmanager
@@ -88,8 +93,21 @@ def create_refund(
     body: CreateRefundRequest,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
+    # C-4 fix: both the missing-header and oversize-header rejects now raise
+    # DomainError subclasses (via domain_error_handler, main.py:42-44) so
+    # every API error shares one `{"error": ...}` shape — previously the
+    # missing-header case raised a raw HTTPException (framework `{"detail":
+    # ...}` shape) and S-01's Header(max_length=...) fix (iter 2) would have
+    # added a second, different framework shape for the oversize case.
     if not idempotency_key:
-        raise HTTPException(status_code=400, detail="Idempotency-Key header is required")
+        raise IdempotencyKeyMissing({"error": "Idempotency-Key header is required"})
+    if len(idempotency_key) > MAX_IDEMPOTENCY_KEY_LENGTH:
+        raise IdempotencyKeyTooLong(
+            {
+                "error": "Idempotency-Key header exceeds maximum length",
+                "max_length": MAX_IDEMPOTENCY_KEY_LENGTH,
+            }
+        )
 
     with SessionLocal() as session:
         refund, created = service.create_refund(

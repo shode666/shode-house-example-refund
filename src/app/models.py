@@ -66,7 +66,7 @@ class Refund(Base):
     )
     amount: Mapped["Numeric"] = mapped_column(Numeric(18, 2), nullable=False)
     idempotency_key: Mapped[str] = mapped_column(
-        String, nullable=False, unique=True
+        String(255), nullable=False, unique=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now

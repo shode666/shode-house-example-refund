@@ -122,6 +122,17 @@ def create_refund(
                 {"error": "order not found", "order_id": str(order_id)}
             )
 
+        # D-1 fix (04-felix-domain.md § D-1): re-check the idempotency key
+        # INSIDE the critical section, immediately after the row lock is
+        # acquired. The read at :111 happens before the lock and can miss a
+        # concurrent same-key request that is still in flight; without this
+        # re-check the loser falls through to the over-refund cap guards
+        # below and gets 422 instead of the AC-05-mandated replay (200).
+        existing = _existing_refund_by_key(session, idempotency_key)
+        if existing is not None:
+            session.rollback()
+            return _handle_replay_or_conflict(existing, order_id, amount), False
+
         if order.refunded_amount >= order.captured_amount:
             # AC-08: order already fully refunded (terminal) -> reject, no writes
             raise OverRefundError(
