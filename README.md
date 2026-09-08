@@ -70,6 +70,18 @@ Needs Python >=3.12 on `PATH` as `python3.12` or `python3`; if neither is
 new enough, `make test` fails with a clear error naming the interpreter it
 found instead of a cryptic `No such file or directory`.
 
+**Prerequisites**: docker compose + Python >= 3.12. macOS ships 3.9, so bring
+your own interpreter and point `make` at it once (the `.venv` is reused after):
+
+```bash
+# Homebrew
+brew install python@3.12 && make test
+# or conda
+conda create -y -n py312 python=3.12 && make test PYTHON="$(conda run -n py312 which python)"
+```
+
+Verified on macOS (docker compose + conda 3.12): `28 passed in 1.84s`.
+
 ### Without docker (this sandbox has no docker — throwaway local cluster instead)
 
 ```bash
